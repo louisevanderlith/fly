@@ -1,0 +1,83 @@
+{
+    "environment": {
+        "bin": "./bin",
+        "mode": "DEV"
+    },
+    "programs": [
+        {
+            "type": "api",
+            "name": "artifact",
+            "play": false,
+            "cmd": "go build; ./artifact.exe"
+        },
+        {
+            "type": "api",
+            "name": "comment",
+            "play": false,
+            "cmd": "go build; ./comment.exe"
+        },
+        {
+            "type": "api",
+            "name": "comms",
+            "play": false,
+            "cmd": "go build; ./comms.exe"
+        },
+        {
+            "type": "api",
+            "name": "folio",
+            "play": true,
+            "cmd": "go build; ./folio.exe"
+        },
+        {
+            "type": "api",
+            "name": "funds",
+            "play": false
+        },
+        {
+            "priority": 10,
+            "type": "api",
+            "name": "router",
+            "play": true
+        },
+        {
+            "priority": 9,
+            "type": "api",
+            "name": "secure",
+            "play": true
+        },
+        {
+            "type": "app",
+            "name": "admin",
+            "play": true
+        },
+        {
+            "type": "app",
+            "name": "auto",
+            "play": true
+        },
+        {
+            "priority": -1,
+            "type": "app",
+            "name": "gate",
+            "play": true
+        },
+        {
+            "priority": -1,
+            "type": "app",
+            "name": "logbook",
+            "play": false
+        },
+        {
+            "priority": -1,
+            "type": "app",
+            "name": "shop",
+            "play": true
+        },
+        {
+            "priority": 0,
+            "type": "app",
+            "name": "www",
+            "play": true
+        }
+    ]
+}
