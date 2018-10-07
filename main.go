@@ -193,17 +193,20 @@ func runPlayWg(wg *sync.WaitGroup, progDir, progName string, build bool) {
 }
 
 func runPlay(progDir, progName string, res chan string) {
-	cmnd := exec.Command(progName)
+	cmnd := exec.Command("./" + progName)
 	cmnd.Dir = progDir
-	out, err := cmnd.CombinedOutput()
+	cmnd.Stdout = newLogger(progName, "x")
 
+	err := cmnd.Start()
 	if err != nil {
-		fmt.Printf("Play Error: %s Stack:\n %s\n", err.Error(), out)
+		fmt.Printf("Play Error: %s Stack:\n", err.Error())
 		res <- "error"
 		return
 	}
 
-	res <- string(out)
+	cmnd.Wait()
+
+	res <- progName + " running"
 }
 
 func (f *fly) Len() int {
