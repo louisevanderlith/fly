@@ -7,26 +7,22 @@
         {
             "type": "api",
             "name": "artifact",
-            "play": false,
-            "cmd": "go build; ./artifact.exe"
+            "play": true
         },
         {
             "type": "api",
             "name": "comment",
-            "play": false,
-            "cmd": "go build; ./comment.exe"
+            "play": false
         },
         {
             "type": "api",
             "name": "comms",
-            "play": false,
-            "cmd": "go build; ./comms.exe"
+            "play": false
         },
         {
             "type": "api",
             "name": "folio",
-            "play": true,
-            "cmd": "go build; ./folio.exe"
+            "play": true
         },
         {
             "type": "api",
@@ -62,16 +58,14 @@
             "play": true
         },
         {
-            "priority": -1,
             "type": "app",
             "name": "logbook",
             "play": false
         },
         {
-            "priority": -1,
             "type": "app",
             "name": "shop",
-            "play": true
+            "play": false
         },
         {
             "priority": 0,

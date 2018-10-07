@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"sort"
 	"sync"
 )
 
@@ -15,7 +16,7 @@ type (
 	fly struct {
 		Env      environment `json:"environment"`
 		Programs []program   `json:"programs"`
-		Dir      string      `json;"_"`
+		Dir      string      `json:"_"`
 	}
 
 	environment struct {
@@ -24,14 +25,15 @@ type (
 	}
 
 	program struct {
-		Type string `json"type"`
-		Name string `json:"name"`
-		Play bool   `json"play"`
+		Type     string `json:"type"`
+		Name     string `json:"name"`
+		Play     bool   `json:"play"`
+		Priority int    `json:"priority"`
 	}
 )
 
 func main() {
-	modePtr := flag.String("mode", "B", "[P]lay || [B]uild (default) || [D]eploy (lab)")
+	modePtr := flag.String("mode", "B", "[P]lay || [B]uild || [D]eploy (lab)")
 	swaggerPtr := flag.Bool("swagger", false, "Updates Swagger docs and routers.")
 	flag.Parse()
 
@@ -77,6 +79,8 @@ func loadConfig() (fly, error) {
 
 	result.Dir = wd
 
+	sort.Sort(&result)
+
 	return result, err
 }
 
@@ -103,7 +107,7 @@ func build(conf fly) {
 }
 
 func play(conf fly, swagger bool) {
-	//build only if application has changed...LATER~
+	//TODO:build only if application has changed...LATER~
 	wg := &sync.WaitGroup{}
 
 	for _, prog := range conf.Programs {
@@ -113,6 +117,7 @@ func play(conf fly, swagger bool) {
 
 		progDir := fmt.Sprintf("%s/%s/%s", conf.Dir, prog.Type, prog.Name)
 
+		//sanity check
 		if _, err := os.Stat(progDir); err != nil {
 			log.Println(err)
 			continue
@@ -127,8 +132,9 @@ func play(conf fly, swagger bool) {
 			<-swaggerDone
 		}
 
+		log.Println(<-buildRes)
 		wg.Add(1)
-		go runPlay(wg, progDir, prog.Name, buildRes)
+		go runPlayWg(wg, progDir, prog.Name, false)
 	}
 
 	wg.Wait()
@@ -155,7 +161,7 @@ func runBuildWg(wg *sync.WaitGroup, progDir string) {
 	res := make(chan string)
 	go runBuild(progDir, res)
 
-	log.Printf("Result %v\n", <-res)
+	log.Printf("Build Result %v\n", <-res)
 	wg.Done()
 }
 
@@ -173,25 +179,41 @@ func runBuild(progDir string, buildRes chan string) {
 	buildRes <- "complete"
 }
 
-func runPlay(wg *sync.WaitGroup, progDir, progName string, buildRes chan string) {
-	//cmnd := os.Exec
-	res := <-buildRes
+func runPlayWg(wg *sync.WaitGroup, progDir, progName string, build bool) {
+	if build {
+		wg.Add(1)
+		go runBuildWg(wg, progDir)
+	}
 
-	if res == "error" {
+	ply := make(chan string, 1)
+	go runPlay(progDir, progName, ply)
+
+	log.Printf("Build Result %v\n", <-ply)
+	wg.Done()
+}
+
+func runPlay(progDir, progName string, res chan string) {
+	cmnd := exec.Command(progName)
+	cmnd.Dir = progDir
+	out, err := cmnd.CombinedOutput()
+
+	if err != nil {
+		fmt.Printf("Play Error: %s Stack:\n %s\n", err.Error(), out)
+		res <- "error"
 		return
 	}
 
-	cmnd := exec.Command(progName)
-	cmnd.Dir = progDir
+	res <- string(out)
+}
 
-	//run in new window...
-	err := cmnd.Run()
+func (f *fly) Len() int {
+	return len(f.Programs)
+}
 
-	if err != nil {
-		log.Println(err)
-	} else {
-		log.Printf("Running %s PID: %v\n", progName, cmnd.Process.Pid)
-	}
+func (f *fly) Less(i, j int) bool {
+	return f.Programs[i].Priority > f.Programs[j].Priority
+}
 
-	wg.Done()
+func (f *fly) Swap(i, j int) {
+	f.Programs[i], f.Programs[j] = f.Programs[j], f.Programs[i]
 }
