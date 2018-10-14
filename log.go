@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"io"
-	"log"
+
+	"github.com/logrusorgru/aurora"
 )
 
 type logger struct {
@@ -18,7 +20,9 @@ func newLogger(progName, pid string) io.Writer {
 }
 
 func (l logger) Write(p []byte) (int, error) {
-	log.Printf("%s:%s\n %s", l.pid, l.progName, string(p))
+	gName := aurora.Green(l.progName)
+	msg := aurora.Blue(p)
+	fmt.Printf(fmt.Sprintf(aurora.Magenta("%s:%s\n %s").String(), l.pid, gName, msg))
 
 	return len(p), nil
 }
