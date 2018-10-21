@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"sort"
-	"strconv"
 	"sync"
 )
 
@@ -184,9 +183,9 @@ func runPlayWg(wg *sync.WaitGroup, progDir, progName string, build bool) {
 func runPlay(progDir, progName string, res chan string) {
 	cmnd := exec.Command("./" + progName)
 	cmnd.Dir = progDir
-	loggr := newLogger(progName, strconv.Itoa(cmnd.Process.Pid))
-	cmnd.Stdout = loggr
-	cmnd.Stderr = loggr
+	//loggr := newLogger(progName, cmnd.Process)
+	cmnd.Stdout = os.Stdout
+	cmnd.Stderr = os.Stderr
 
 	err := cmnd.Start()
 	if err != nil {
