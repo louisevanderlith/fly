@@ -1,10 +1,14 @@
 package main
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/louisevanderlith/fly/patterns"
+)
 
 func TestLoadConfig_PriorityCorrect_RouterFirst(t *testing.T) {
 	expect := "router"
-	actual, err := loadConfig()
+	actual, err := patterns.DetectConfig(".", "TEST")
 
 	if err != nil {
 		t.Error(err)
