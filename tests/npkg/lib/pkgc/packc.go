@@ -1,0 +1,5 @@
+package pkgc
+
+func PackC() {
+
+}

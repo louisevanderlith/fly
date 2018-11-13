@@ -1,0 +1,5 @@
+package packa
+
+func PkgA() {
+
+}
