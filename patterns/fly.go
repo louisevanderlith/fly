@@ -44,6 +44,7 @@ type (
 		Path       string
 		HasMain    bool
 		HasGoFiles bool
+		Copy       []string
 	}
 )
 
@@ -105,7 +106,7 @@ func (f *Fly) Build() {
 		}
 
 		wg.Add(1)
-		runBuildWg(wg, prog.Path)
+		runBuildWg(wg, prog.Path, f.Env.Bin, prog.Name, f.Env.Mode)
 	}
 
 	wg.Wait()
@@ -127,7 +128,7 @@ func (f *Fly) Play(swagger bool) {
 		}
 
 		buildRes := make(chan string)
-		go runBuild(prog.Path, buildRes)
+		go runBuild(prog.Path, f.Env.Bin, prog.Name, f.Env.Mode, buildRes)
 
 		if swagger && prog.Type == Cmd {
 			swaggerDone := make(chan bool)
@@ -137,7 +138,7 @@ func (f *Fly) Play(swagger bool) {
 
 		log.Println(<-buildRes)
 		wg.Add(1)
-		go runPlayWg(wg, prog.Path, prog.Name, false)
+		go runPlayWg(wg, prog.Path, f.Env.Bin, prog.Name, f.Env.Mode, false)
 	}
 
 	wg.Wait()
@@ -172,21 +173,22 @@ func updateSwagger(progDir string, done chan bool) {
 	done <- true
 }
 
-func runBuildWg(wg *sync.WaitGroup, progDir string) {
+func runBuildWg(wg *sync.WaitGroup, progDir, buildDir, progName, mode string) {
 	res := make(chan string)
-	go runBuild(progDir, res)
+	go runBuild(progDir, buildDir, progName, mode, res)
 
-	log.Printf("Build Result %v\n", <-res)
+	log.Printf("Build %s Result %v\n", progName, <-res)
 	wg.Done()
 }
 
-func runBuild(progDir string, buildRes chan string) {
-	cmnd := exec.Command("go", "build")
+func runBuild(progDir, buildDir, progName, mode string, buildRes chan string) {
+	outDir := getOutDir(buildDir, progName, mode)
+	cmnd := exec.Command("go", "build", "-o", outDir, "-i")
 	cmnd.Dir = progDir
 	out, err := cmnd.CombinedOutput()
 
 	if err != nil {
-		fmt.Printf("Build Error: %s\n", out)
+		fmt.Printf("Build %s Error: %s\n", progName, out)
 		buildRes <- "error"
 		return
 	}
@@ -194,10 +196,16 @@ func runBuild(progDir string, buildRes chan string) {
 	buildRes <- "complete"
 }
 
-func runPlayWg(wg *sync.WaitGroup, progDir, progName string, build bool) {
+func getOutDir(buildDir, progName, mode string) string {
+	wd, _ := os.Getwd()
+
+	return fmt.Sprintf("%s/%s/%s/%s/%s", wd, buildDir, mode, progName, progName)
+}
+
+func runPlayWg(wg *sync.WaitGroup, progDir, buildDir, progName, mode string, build bool) {
 	if build {
 		wg.Add(1)
-		runBuildWg(wg, progDir)
+		runBuildWg(wg, progDir, buildDir, progName, mode)
 	}
 
 	ply := make(chan string, 1)
