@@ -107,6 +107,11 @@ func buildStructure(progMap map[string][]string) []StructureInfo {
 func lastFolder(path string) string {
 	parts := strings.Split(path, "/")
 
+	//windows...
+	if len(parts) == 1 {
+		parts = strings.Split(path, "\\")
+	}
+
 	for i := (len(parts) - 1); i >= 0; i-- {
 		curr := parts[i]
 
