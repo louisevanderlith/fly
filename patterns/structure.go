@@ -79,7 +79,7 @@ func buildStructure(progMap map[string][]string) []StructureInfo {
 		prog := StructureInfo{
 			HasGoFiles: false,
 			HasMain:    false,
-			Name:       lastFolder(k),
+			Name:       filepath.Base(k),
 			Path:       k,
 		}
 
@@ -102,25 +102,6 @@ func buildStructure(progMap map[string][]string) []StructureInfo {
 	}
 
 	return result
-}
-
-func lastFolder(path string) string {
-	parts := strings.Split(path, "/")
-
-	//windows...
-	if len(parts) == 1 {
-		parts = strings.Split(path, "\\")
-	}
-
-	for i := (len(parts) - 1); i >= 0; i-- {
-		curr := parts[i]
-
-		if curr != "" {
-			return curr
-		}
-	}
-
-	return path
 }
 
 /*
