@@ -1,5 +1,0 @@
-package pkgc
-
-func PackB() {
-
-}
