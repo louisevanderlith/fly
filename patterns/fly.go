@@ -7,14 +7,7 @@ import (
 	"sort"
 )
 
-// ProgramType defines the project's type
-type ProgramType = int
-
 const (
-	//Cmd ProgramType is a Command line application
-	Cmd ProgramType = iota
-	//Pkg ProgramType is a Package to be used by other applications
-	Pkg
 	//ConfName is the configuration file's name
 	ConfName string = "./fly.json"
 )
@@ -27,27 +20,16 @@ type (
 	}
 
 	environment struct {
-		Bin  string `json:"bin"`
-		Mode string `json:"mode"`
+		Bin  string   `json:"bin"`
+		Mode string   `json:"mode"`
+		Copy []string `json:"copy"`
 	}
 
 	Program struct {
-		Type     ProgramType `json:"type"`
-		Name     string      `json:"name"`
-		Play     bool        `json:"play"`
-		Priority int         `json:"priority"`
-		Path     string      `json:"path"`
-		Copy     []string    `json:"copy"`
-	}
-
-	//StructureInfo contains information about a application in a specific folder.
-	StructureInfo struct {
-		Name       string
-		Path       string
-		HasMain    bool
-		HasGoFiles bool
-		//NoCode contains the folders that don't have Go code.
-		NoCode []string
+		Name     string `json:"name"`
+		Play     bool   `json:"play"`
+		Priority int    `json:"priority"`
+		Path     string `json:"path"`
 	}
 )
 
@@ -56,9 +38,9 @@ func DetectConfig(path, mode string) (Fly, error) {
 
 	if err != nil {
 		//you shouldn't be generating fly configs any other place than DEV.
-		conf, err := generateConfig(path, mode)
+		conf := generateConfig(path, mode)
 
-		if err == nil && mode != "TEST" {
+		if mode != "TEST" {
 			writeConfig(conf)
 		}
 

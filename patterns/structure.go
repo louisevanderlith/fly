@@ -1,115 +1,54 @@
 package patterns
 
 import (
-	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
-//Structurer will pass (info []StructureInfo) to a NewPattern, for testing
-type Structurer interface {
-	Test() bool
-	Spawn() (Fly, error)
-}
+func generateConfig(path, mode string) Fly {
+	result := Fly{
+		Env: environment{
+			Bin:  "./bin",
+			Mode: mode,
+		},
+	}
 
-func registeredStructures(mode string, info []StructureInfo) []Structurer {
-	var structures []Structurer
-
-	structures = append(structures, NewNCmdNPkg(mode, info))
-	structures = append(structures, NewNCmdOnePkg(mode, info))
-	structures = append(structures, NewOneCmdNPkg(mode, info))
-	structures = append(structures, NewOneCmdOnePkg(mode, info))
-	structures = append(structures, NewNCmd(mode, info))
-	structures = append(structures, NewOneCmd(mode, info))
-	structures = append(structures, NewNPkg(mode, info))
-	structures = append(structures, NewOnePkg(mode, info))
-
-	return structures
-}
-
-func generateConfig(path, mode string) (Fly, error) {
-	info, err := ScanFolder(path)
+	apps, err := scanForMain(path)
 
 	if err != nil {
-		return Fly{}, err
+		panic(err)
 	}
 
-	for _, v := range registeredStructures(mode, info) {
-		if v.Test() {
-			return v.Spawn()
-		}
-	}
-
-	return Fly{}, errors.New("no structure tests passed")
-}
-
-func ScanFolder(basePath string) ([]StructureInfo, error) {
-	progMap := make(map[string][]string)
-
-	err := filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
-			return err
+	for name, appPath := range apps {
+		p := Program{
+			Name:     name,
+			Path:     appPath,
+			Priority: 0,
+			Play:     true,
 		}
 
-		if info.IsDir() {
-			return nil
-		}
-
-		withoutName := strings.Replace(path, info.Name(), "", 1)
-
-		progMap[withoutName] = append(progMap[withoutName], info.Name())
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return buildStructure(progMap), nil
-}
-
-func buildStructure(progMap map[string][]string) []StructureInfo {
-	var result []StructureInfo
-
-	for k, v := range progMap {
-		prog := StructureInfo{
-			HasGoFiles: false,
-			HasMain:    false,
-			Name:       filepath.Base(k),
-			Path:       k,
-		}
-
-		for i := 0; i < len(v); i++ {
-			curr := v[i]
-
-			if strings.Contains(curr, ".go") {
-				prog.HasGoFiles = true
-			}
-
-			if curr == "main.go" {
-				prog.HasMain = true
-				break
-			}
-		}
-
-		if prog.HasMain {
-			result = append(result, prog)
-		}
+		result.Programs = append(result.Programs, p)
 	}
 
 	return result
 }
 
-/*
-   (x) 1 package
-   (x) n packages
-   (x) 1 command
-   (x) 1 command and 1 package
-   (x) n commands and 1 package
-   (x) 1 command and n packages
-   (x) n commands and n packages
-*/
+func scanForMain(basePath string) (map[string]string, error) {
+	result := make(map[string]string)
+
+	err := filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
+		if info.IsDir() {
+			return nil
+		}
+
+		if info.Name() == "main.go" {
+			dir, _ := filepath.Split(path)
+			name := filepath.Base(dir)
+			result[name] = dir
+		}
+
+		return nil
+	})
+
+	return result, err
+}

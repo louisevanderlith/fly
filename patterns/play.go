@@ -26,7 +26,7 @@ func (f *Fly) Play(swagger bool) {
 		buildRes := make(chan string)
 		go runBuild(f.Env, prog, buildRes)
 
-		if swagger && prog.Type == Cmd {
+		if swagger {
 			swaggerDone := make(chan bool)
 			go updateSwagger(prog.Path, swaggerDone)
 			<-swaggerDone

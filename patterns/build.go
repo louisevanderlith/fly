@@ -52,7 +52,8 @@ func runBuildWg(wg *sync.WaitGroup, env environment, p Program) {
 //func runBuild(progDir, buildDir, progName, mode string, buildRes chan string) {
 func runBuild(env environment, p Program, buildRes chan string) {
 	outDir := getOutDir(env, p.Name)
-	cmnd := exec.Command("go", "build", "-o", outDir, "-i")
+	outFile := filepath.Join(outDir, p.Name)
+	cmnd := exec.Command("go", "build", "-o", outFile, "-i")
 	cmnd.Dir = p.Path
 	out, err := cmnd.CombinedOutput()
 
@@ -70,18 +71,19 @@ func runBuild(env environment, p Program, buildRes chan string) {
 func getOutDir(env environment, progName string) string {
 	wd, _ := os.Getwd()
 
-	return fmt.Sprintf("%s/%s/%s/%s/%s", wd, env.Bin, env.Mode, progName, progName)
+	return fmt.Sprintf("%s/%s/%s/%s", wd, env.Bin, env.Mode, progName)
 }
 
 func copyAdditionalItems(env environment, p Program, outDir string) {
-	for _, v := range p.Copy {
-		src := filepath.Join(p.Path, v)
+	for _, v := range env.Copy {
+		wd, _ := os.Getwd()
+		src := filepath.Join(wd, p.Path, v)
 		dst := filepath.Join(outDir, v)
 
 		err := CopyFile(src, dst)
 
 		if err != nil {
-			fmt.Printf("Unable to copy %s; %+v\n", src, err)
+			fmt.Printf("Unable to copy %s; to %s %+v\n", src, dst, err)
 		}
 	}
 }
@@ -91,37 +93,32 @@ func copyAdditionalItems(env environment, p Program, outDir string) {
 // between the two files. If that fail, copy the file contents from src to dst.
 func CopyFile(src, dst string) (err error) {
 	sfi, err := os.Stat(src)
-
 	if err != nil {
-		return err
+		return
 	}
-
 	if !sfi.Mode().IsRegular() {
 		// cannot copy non-regular files (e.g., directories,
 		// symlinks, devices, etc.)
 		return fmt.Errorf("CopyFile: non-regular source file %s (%q)", sfi.Name(), sfi.Mode().String())
 	}
-
 	dfi, err := os.Stat(dst)
-
 	if err != nil {
 		if !os.IsNotExist(err) {
-			return err
+			return
 		}
 	} else {
 		if !(dfi.Mode().IsRegular()) {
 			return fmt.Errorf("CopyFile: non-regular destination file %s (%q)", dfi.Name(), dfi.Mode().String())
 		}
 		if os.SameFile(sfi, dfi) {
-			return err
+			return
 		}
 	}
-
 	if err = os.Link(src, dst); err == nil {
-		return nil
+		return
 	}
-
-	return copyFileContents(src, dst)
+	err = copyFileContents(src, dst)
+	return
 }
 
 // copyFileContents copies the contents of the file named src to the file named
@@ -134,6 +131,13 @@ func copyFileContents(src, dst string) (err error) {
 		return
 	}
 	defer in.Close()
+
+	dir, fle := filepath.Split(dst)
+
+	if len(fle) > 0 {
+		os.MkdirAll(dir, os.ModePerm)
+	}
+
 	out, err := os.Create(dst)
 	if err != nil {
 		return
