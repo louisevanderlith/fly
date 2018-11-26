@@ -1,5 +1,0 @@
-package onepkg
-
-func OnlyALibrary() {
-
-}
